@@ -5,19 +5,29 @@ services:
     build: ./node-app
     ports:
       - "3000:3000"
-  
+    networks:
+      - shared-network
+
   python-app:
     build: ./python-app
     ports:
       - "8080:8080"
+    networks:
+      - shared-network
 
   nginx:
     image: nginx:latest
     ports:
       - "80:80"
     volumes:
-      - ./nginx:/etc/nginx/html/nginx.html  # This will copy nginx.html to NGINX's root directory
+      - ./nginx:/etc/nginx/html/nginx.html
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - node-app
       - python-app
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    driver: bridge
