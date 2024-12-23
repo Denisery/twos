@@ -1,20 +1,39 @@
-# Stage 1: Build Node.js app
-FROM node:16 AS node-build
-WORKDIR /node-app
-COPY ./node-app .
-RUN npm install && npm run build
+# Base image for Node.js
+FROM node:18 as node-build
 
-# Stage 2: Prepare Python app
-FROM python:3.9 AS python-build
+# Set working directory for Node.js app
+WORKDIR /node-app
+COPY ./node-app ./
+RUN npm install
+
+# Build Python app base
+FROM python:3.10 as python-build
+
+# Set working directory for Python app
 WORKDIR /python-app
-COPY ./python-app .
+COPY ./python-app ./
 RUN pip install -r requirements.txt
 
-# Stage 3: Set up NGINX
+# Final image with Nginx
 FROM nginx:latest
-COPY ./nginx.conf /etc/nginx/nginx.conf
-COPY --from=node-build /node-app /usr/share/nginx/html/node-app
-COPY --from=python-build /python-app /usr/share/nginx/html/python-app
 
+# Copy Node.js app
+COPY --from=node-build /node-app /app/node-app
+
+# Copy Python app
+COPY --from=python-build /python-app /app/python-app
+
+# Copy Nginx configuration
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Add script to start all processes
+COPY ./start.sh /start.sh
+RUN chmod +x /start.sh
+
+# Expose required ports
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+EXPOSE 8080
+
+# Start script to run all services
+CMD ["/start.sh"]
